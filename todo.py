@@ -6,29 +6,55 @@ A simple command-line todo list manager with JSON file storage.
 
 import argparse
 import sys
+from datetime import datetime
 
 from storage import load_todos, save_todos, get_next_id
 
 
-def add_todo(task: str) -> None:
+def parse_date(date_str: str) -> str | None:
+    """Parse and validate a date string.
+
+    Args:
+        date_str: Date string in YYYY-MM-DD format.
+
+    Returns:
+        The validated date string, or None if invalid.
+    """
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return date_str
+    except ValueError:
+        return None
+
+
+def add_todo(task: str, due: str | None = None) -> None:
     """Add a new todo item.
 
     Args:
         task: The task description.
+        due: Optional due date in YYYY-MM-DD format.
     """
     if not task.strip():
         print("Error: Task description cannot be empty.")
         sys.exit(1)
+
+    if due is not None:
+        if parse_date(due) is None:
+            print("Error: Invalid date format. Use YYYY-MM-DD.")
+            sys.exit(1)
 
     todos = load_todos()
     new_todo = {
         "id": get_next_id(todos),
         "task": task.strip(),
         "completed": False,
+        "due": due,
     }
     todos.append(new_todo)
     save_todos(todos)
-    print(f"Added todo #{new_todo['id']}: {new_todo['task']}")
+
+    due_str = f" (due: {due})" if due else ""
+    print(f"Added todo #{new_todo['id']}: {new_todo['task']}{due_str}")
 
 
 def list_todos(show_all: bool = False) -> None:
@@ -55,7 +81,8 @@ def list_todos(show_all: bool = False) -> None:
 
     for todo in filtered:
         status = "[x]" if todo.get("completed", False) else "[ ]"
-        print(f"{status} #{todo['id']}: {todo['task']}")
+        due_str = f" (due: {todo['due']})" if todo.get("due") else ""
+        print(f"{status} #{todo['id']}: {todo['task']}{due_str}")
 
 
 def complete_todo(todo_id: int) -> None:
@@ -109,6 +136,12 @@ def main() -> None:
     # Add command
     add_parser = subparsers.add_parser("add", help="Add a new todo")
     add_parser.add_argument("task", type=str, help="The task description")
+    add_parser.add_argument(
+        "--due", "-d",
+        type=str,
+        default=None,
+        help="Due date in YYYY-MM-DD format",
+    )
 
     # List command
     list_parser = subparsers.add_parser("list", help="List todos")
@@ -134,7 +167,7 @@ def main() -> None:
         sys.exit(1)
 
     if args.command == "add":
-        add_todo(args.task)
+        add_todo(args.task, args.due)
     elif args.command == "list":
         list_todos(args.show_all)
     elif args.command == "complete":

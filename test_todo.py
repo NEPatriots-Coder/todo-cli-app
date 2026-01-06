@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 
 import storage
-from todo import add_todo, list_todos, complete_todo, delete_todo
+from todo import add_todo, list_todos, complete_todo, delete_todo, parse_date
 
 
 @pytest.fixture
@@ -180,3 +180,67 @@ class TestDeleteTodo:
         assert len(todos) == 2
         assert todos[0]["id"] == 1
         assert todos[1]["id"] == 3
+
+
+class TestParseDate:
+    """Tests for parse_date function."""
+
+    def test_valid_date(self) -> None:
+        """Valid date string returns the same string."""
+        assert parse_date("2025-01-15") == "2025-01-15"
+
+    def test_invalid_format(self) -> None:
+        """Invalid date format returns None."""
+        assert parse_date("01-15-2025") is None
+        assert parse_date("2025/01/15") is None
+        assert parse_date("January 15, 2025") is None
+
+    def test_invalid_date(self) -> None:
+        """Invalid date values return None."""
+        assert parse_date("2025-13-01") is None  # Invalid month
+        assert parse_date("2025-01-32") is None  # Invalid day
+        assert parse_date("not-a-date") is None
+
+
+class TestDueDates:
+    """Tests for due date functionality."""
+
+    def test_add_with_due_date(self, temp_storage: str, capsys) -> None:
+        """Adding a todo with due date stores it correctly."""
+        add_todo("Task with deadline", due="2025-01-15")
+        todos = storage.load_todos(temp_storage)
+        assert todos[0]["due"] == "2025-01-15"
+
+    def test_add_without_due_date(self, temp_storage: str) -> None:
+        """Adding a todo without due date sets due to None."""
+        add_todo("Task without deadline")
+        todos = storage.load_todos(temp_storage)
+        assert todos[0]["due"] is None
+
+    def test_add_prints_due_date(self, temp_storage: str, capsys) -> None:
+        """Adding a todo with due date shows it in confirmation."""
+        add_todo("Task", due="2025-01-15")
+        captured = capsys.readouterr()
+        assert "(due: 2025-01-15)" in captured.out
+
+    def test_add_invalid_due_date_exits(self, temp_storage: str) -> None:
+        """Adding a todo with invalid due date exits with error."""
+        with pytest.raises(SystemExit) as exc_info:
+            add_todo("Task", due="invalid-date")
+        assert exc_info.value.code == 1
+
+    def test_list_shows_due_date(self, temp_storage: str, capsys) -> None:
+        """Listing todos displays due dates."""
+        add_todo("Task with deadline", due="2025-01-15")
+        capsys.readouterr()
+        list_todos()
+        captured = capsys.readouterr()
+        assert "(due: 2025-01-15)" in captured.out
+
+    def test_list_no_due_date_no_extra_text(self, temp_storage: str, capsys) -> None:
+        """Listing todos without due dates doesn't show due text."""
+        add_todo("Task without deadline")
+        capsys.readouterr()
+        list_todos()
+        captured = capsys.readouterr()
+        assert "(due:" not in captured.out
