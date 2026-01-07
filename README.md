@@ -38,6 +38,18 @@ python todo.py add "Buy groceries"
 # Output: Added todo #1: Buy groceries
 ```
 
+#### Add a Todo with a Due Date
+Use the `--due` (or `-d`) flag to set a due date in `YYYY-MM-DD` format:
+```bash
+python todo.py add "Finish report" --due 2025-01-15
+# Output: Added todo #2: Finish report (due: 2025-01-15)
+```
+Or using the short form:
+```bash
+python todo.py add "Call dentist" -d 2025-01-10
+# Output: Added todo #3: Call dentist (due: 2025-01-10)
+```
+
 ### List Todos
 ```bash
 python todo.py list          # Show pending todos only
@@ -48,7 +60,8 @@ Example:
 python todo.py list
 # Output:
 # [ ] #1: Buy groceries
-# [ ] #2: Walk the dog
+# [ ] #2: Finish report (due: 2025-01-15)
+# [ ] #3: Call dentist (due: 2025-01-10)
 ```
 
 ### Complete a Todo
